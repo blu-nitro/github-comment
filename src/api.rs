@@ -140,14 +140,11 @@ impl GitLabAPI {
         let form = [(format!("variables[{}]", variable.0), variable.1)];
 
         let client = reqwest::Client::new();
-        let res = client
-            .post(format!(
-                "https://{}/api/v4/projects/{}/trigger/pipeline?{}&ref={}",
-                self.instance, self.project, self.token, branch
-            ))
-            .form(&form)
-            .send()
-            .await?;
+        let url = format!(
+            "https://{}/api/v4/projects/{}%2F{}/trigger/pipeline?token={}&ref={}",
+            self.instance, self.namespace, self.repo, self.token, branch
+        );
+        let res = client.post(url).form(&form).send().await?;
         res.text()
             .await
             .context("failed to get gitlab api response")
