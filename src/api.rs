@@ -5,17 +5,15 @@ use octocrab::{
     Octocrab,
 };
 
-use crate::args::Args;
-
-pub fn init(args: &Args, api_token: String) -> Result<Api> {
+pub fn init(owner: &str, repo: &str, api_token: String) -> Result<Api> {
     let octocrab = Octocrab::builder()
         .personal_token(api_token)
         .build()
         .context("failed to create API client")?;
     Ok(Api {
         octocrab,
-        owner: args.owner.clone(),
-        repo: args.repo.clone(),
+        owner: owner.to_owned(),
+        repo: repo.to_owned(),
     })
 }
 
@@ -106,5 +104,13 @@ impl Api {
                 )
             })?;
         Ok(())
+    }
+
+    pub async fn get_pull_request_by_id(&self, id: u64) -> Result<PullRequest> {
+        self.octocrab
+            .pulls(self.owner.to_owned(), self.repo.to_owned())
+            .get(id)
+            .await
+            .context("Error: Failed to fetch matching pull request")
     }
 }
