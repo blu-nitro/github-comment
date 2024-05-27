@@ -5,25 +5,25 @@ use octocrab::{
     Octocrab,
 };
 
-pub fn init(owner: &str, repo: &str, api_token: String) -> Result<Api> {
-    let octocrab = Octocrab::builder()
-        .personal_token(api_token)
-        .build()
-        .context("failed to create API client")?;
-    Ok(Api {
-        octocrab,
-        owner: owner.to_owned(),
-        repo: repo.to_owned(),
-    })
-}
-
-pub struct Api {
+pub struct GitHubApi {
     octocrab: Octocrab,
     owner: String,
     repo: String,
 }
 
-impl Api {
+impl GitHubApi {
+    pub fn init(owner: &str, repo: &str, api_token: String) -> Result<GitHubApi> {
+        let octocrab = Octocrab::builder()
+            .personal_token(api_token)
+            .build()
+            .context("failed to create API client")?;
+        Ok(GitHubApi {
+            octocrab,
+            owner: owner.to_owned(),
+            repo: repo.to_owned(),
+        })
+    }
+
     pub async fn find_pull_request(&self, commit: &str) -> Result<PullRequest> {
         let mut pull_requests = self
             .octocrab
@@ -112,5 +112,53 @@ impl Api {
             .get(id)
             .await
             .context("Error: Failed to fetch matching pull request")
+    }
+}
+
+pub struct GitLabAPI {
+    token: String,
+    instance: String,
+    namespace: String,
+    repo: String,
+}
+
+impl GitLabAPI {
+    pub fn init(token: &str, instance: &str, namespace: &str, repo: &str) -> Self {
+        GitLabAPI {
+            token: token.to_string(),
+            instance: instance.to_string(),
+            namespace: namespace.to_string(),
+            repo: repo.to_string(),
+        }
+    }
+
+    async fn trigger_pipeline_with_variable(
+        &self,
+        branch: &str,
+        variable: (&str, &str),
+    ) -> Result<String> {
+        let form = [(format!("variables[{}]", variable.0), variable.1)];
+
+        let client = reqwest::Client::new();
+        let res = client
+            .post(format!(
+                "https://{}/api/v4/projects/{}/trigger/pipeline?{}&ref={}",
+                self.instance, self.project, self.token, branch
+            ))
+            .form(&form)
+            .send()
+            .await?;
+        res.text()
+            .await
+            .context("failed to get gitlab api response")
+    }
+
+    pub async fn trigger_pipeline_with_command(
+        &self,
+        branch: &str,
+        command: &str,
+    ) -> Result<String> {
+        self.trigger_pipeline_with_variable(branch, ("COMMAND", command))
+            .await
     }
 }

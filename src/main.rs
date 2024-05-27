@@ -1,7 +1,9 @@
 mod api;
 mod args;
 
-use std::{env, fs, path::PathBuf};
+extern crate reqwest;
+
+use std::{env, fs};
 
 use anyhow::{ensure, Context, Result};
 use args::{ReadCommandArgs, WriteArgs};
@@ -28,7 +30,7 @@ async fn write(args: &WriteArgs, api_token: String) -> Result<()> {
             args.text.display()
         )
     })?;
-    let api = api::init(&args.owner, &args.repo, api_token)?;
+    let api = api::GitHubApi::init(&args.owner, &args.repo, api_token)?;
     let pull_request = api.find_pull_request(&args.commit).await?;
     println!("Found pull request #{}", pull_request.number);
 
@@ -107,14 +109,20 @@ async fn read(args: &ReadCommandArgs, api_token: String) -> Result<()> {
     let repo = full_name.next().context("Error: unpacking repo name")?;
 
     // get pull request and assosiated branch
-    let api = api::init(owner, repo, api_token)?;
+    let api = api::GitHubApi::init(owner, repo, api_token)?;
 
     let pull_request = api.get_pull_request_by_id(issue_id).await?;
     let branch = pull_request.head.ref_field;
     println!("Found PR branch: {branch}");
 
-    let outfile = "commands";
-    let out = branch.clone() + "\n" + &commands.join("\n") + "\n";
-    println!("Commands output: {outfile}");
-    fs::write(PathBuf::from(outfile), out).context("Error: writing to file {outfile}")
+    let glapi = api::GitLabAPI::init(&args.job_token, &args.gl_instance, owner, repo);
+    for command in commands {
+        println!("Triggering pipeline with command {}", command);
+        let res = glapi
+            .trigger_pipeline_with_command(&branch, command)
+            .await?;
+        println!("Pipeline response for command {}: \n{}", command, res);
+    }
+
+    Ok(())
 }

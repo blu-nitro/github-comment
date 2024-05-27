@@ -39,6 +39,10 @@ pub struct WriteArgs {
 pub struct ReadCommandArgs {
     /// A json file containing the webhook contents
     pub webhook: PathBuf,
+    /// The GitLab instance the commands are to be executed on
+    pub gl_instance: String,
+    /// Your GitLab job token
+    pub job_token: String,
 }
 
 #[derive(Subcommand)]
