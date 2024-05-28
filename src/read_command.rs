@@ -13,27 +13,16 @@ pub async fn parse_webhook(parser: WebhookParser) -> Result<(String, String, u64
     }
 
     // if comment has no command exit
-    let body: String = parser.comment().await;
-    let commands: Vec<String> = body
-        .split("\\r\\n")
-        .filter(|line| line.starts_with("@bot "))
-        .flat_map(|s| -> Vec<String> {
-            s.to_string()
-                .replace("@bot ", "")
-                .split(' ')
-                .map(|s| s.to_string())
-                .collect()
-        })
-        .collect();
+    let commands = parser.extract_commands().await;
     if commands.is_empty() {
-        println!("Exiting: no command found: {body:?}");
+        println!("Exiting: no command found");
         exit(0);
     } else {
         println!("Found commands: {commands:?}");
     }
 
     // ensure author of command has sufficient rights
-    let rights = parser.author_assosiation().await;
+    let rights = parser.author_association().await;
     ensure!(
         rights.eq("OWNER") || rights.eq("COLLABORATOR"),
         "Exiting: Commenter does not have sufficient rights: {}",
