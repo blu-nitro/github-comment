@@ -14,6 +14,7 @@ pub struct Webhook {
     pub action: String,
     pub comment: String,
     pub comment_id: String,
+    pub author: String,
     pub author_association: String,
     pub issue_number: u64,
     pub repo: Repository,
@@ -32,6 +33,12 @@ struct WebhookComment {
     body: String,
     id: u64,
     author_association: String,
+    user: WebhookCommentUser,
+}
+
+#[derive(Deserialize)]
+struct WebhookCommentUser {
+    login: String,
 }
 
 #[derive(Deserialize)]
@@ -67,6 +74,7 @@ impl Webhook {
         let action = raw.action;
         let comment = raw.comment.body;
         let comment_id = raw.comment.id.to_string();
+        let author = raw.comment.user.login;
         let author_association = raw.comment.author_association;
 
         let issue_number = raw.issue.number;
@@ -79,6 +87,7 @@ impl Webhook {
             action,
             comment,
             comment_id,
+            author,
             author_association,
             issue_number,
             repo,
@@ -168,7 +177,7 @@ mod tests {
               "id": 4242424242,
               "node_id": "node_id",
               "user": {
-                "login": "namespace",
+                "login": "authorlogin",
                 "id": 111111111,
                 "node_id": "U_kgDOCViPUg",
                 "avatar_url": "https://avatars.githubusercontent.com/u/111111111?v=4",
@@ -332,6 +341,7 @@ mod tests {
         let webhook = Webhook::parse_from_str(WEBHOOK_DATA).unwrap();
         assert_eq!(webhook.action, "created".to_string());
         assert_eq!(webhook.comment_id, "4242424242".to_string());
+        assert_eq!(webhook.author, "authorlogin".to_string());
         assert_eq!(webhook.author_association, "OWNER".to_string());
         assert_eq!(webhook.issue_number, 3);
         assert_eq!(

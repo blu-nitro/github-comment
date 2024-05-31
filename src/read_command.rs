@@ -1,6 +1,12 @@
 use crate::webhook::Webhook;
 
 pub fn extract_commands(webhook: &Webhook) -> Vec<String> {
+    // prevent creating loops
+    if webhook.author.eq("nitrokey-ci") {
+        println!("nitrokey-ci cannot trigger commands");
+        return vec![];
+    }
+
     // only continue if comment was not deleted
     if webhook.action.eq("deleted") {
         println!("Exiting: comment deleted");
