@@ -3,6 +3,11 @@ name = "github-comment"
 version = "0.1.0"
 edition = "2021"
 
+authors = ["Nitrokey GmbH <info@nitrokey.com>"]
+description = "CLI tool for interacting with the GitHub API"
+license = "Apache-2.0 or MIT"
+repository = "https://github.com/Nitrokey/github-comment"
+
 [dependencies]
 anyhow = "1.0.81"
 clap = { version = "4.5.2", features = ["derive"] }
