@@ -2,80 +2,87 @@ use std::{fs, path::PathBuf};
 
 use anyhow::Context;
 use anyhow::Result;
-use serde_json::Value;
+use serde::Deserialize;
 
-pub struct WebhookParser {
-    json_object: Value,
+#[derive(PartialEq, Debug)]
+pub struct Repository {
+    pub owner: String,
+    pub name: String,
 }
 
-impl WebhookParser {
-    pub fn init(file: &PathBuf) -> Result<Self> {
+pub struct Webhook {
+    pub action: String,
+    pub comment: String,
+    pub comment_id: String,
+    pub author_association: String,
+    pub issue_number: u64,
+    pub repo: Repository,
+}
+
+#[derive(Deserialize)]
+struct WebhookRaw {
+    action: String,
+    comment: WebhookComment,
+    issue: WebhookIssue,
+    repository: WebhookRepository,
+}
+
+#[derive(Deserialize)]
+struct WebhookComment {
+    body: String,
+    id: u64,
+    author_association: String,
+}
+
+#[derive(Deserialize)]
+struct WebhookIssue {
+    number: u64,
+}
+
+#[derive(Deserialize)]
+struct WebhookRepository {
+    owner: WebhookRepositoryOwner,
+    name: String,
+}
+
+#[derive(Deserialize)]
+struct WebhookRepositoryOwner {
+    login: String,
+}
+
+impl Webhook {
+    pub fn parse(file: &PathBuf) -> Result<Self> {
         let text = fs::read_to_string(file).with_context(|| {
             format!(
                 "Error: Failed to read issue_comment data from file '{}'",
                 &file.display()
             )
         })?;
-        Self::init_from_str(&text)
+        Self::parse_from_str(&text)
     }
 
-    pub fn init_from_str(text: &str) -> Result<Self> {
-        let json_object: Value = serde_json::from_str(text)
+    pub fn parse_from_str(text: &str) -> Result<Self> {
+        let raw: WebhookRaw = serde_json::from_str(text)
             .with_context(|| "Error: Failed to read json data from issue_comment data")?;
-        Ok(Self { json_object })
-    }
+        let action = raw.action;
+        let comment = raw.comment.body;
+        let comment_id = raw.comment.id.to_string();
+        let author_association = raw.comment.author_association;
 
-    pub async fn action(&self) -> String {
-        self.json_object["action"].to_string().replace('"', "")
-    }
+        let issue_number = raw.issue.number;
 
-    pub async fn comment(&self) -> String {
-        self.json_object["comment"]["body"]
-            .to_string()
-            .replace('"', "")
-    }
+        let owner = raw.repository.owner.login;
+        let repo = raw.repository.name;
+        let repo = Repository { owner, name: repo };
 
-    pub async fn comment_id(&self) -> String {
-        self.json_object["comment"]["id"].to_string()
-    }
-
-    pub async fn extract_commands(&self) -> Vec<String> {
-        let text = self.comment().await;
-        let commands: Vec<String> = text
-            .split("\\r\\n")
-            .filter(|line| line.starts_with("@bot "))
-            .flat_map(|s| -> Vec<String> {
-                s.to_string()
-                    .replace("@bot ", "")
-                    .split(' ')
-                    .map(|s| s.to_string())
-                    .collect()
-            })
-            .collect();
-        commands
-    }
-
-    pub async fn author_association(&self) -> String {
-        self.json_object["comment"]["author_association"]
-            .to_string()
-            .replace('"', "")
-    }
-
-    pub async fn issue_number(&self) -> Result<u64> {
-        self.json_object["issue"]["number"]
-            .as_u64()
-            .context("Error: unpacking issue id: not a number")
-    }
-
-    pub async fn repository(&self) -> Result<(String, String)> {
-        let full_name = self.json_object["repository"]["full_name"]
-            .to_string()
-            .replace('"', "");
-        let mut full_name = full_name.split('/');
-
-        let owner = full_name.next().context("Error: unpacking repo owner")?;
-        let repo = full_name.next().context("Error: unpacking repo name")?;
-        Ok((owner.to_string(), repo.to_string()))
+        Ok(Self {
+            action,
+            comment,
+            comment_id,
+            author_association,
+            issue_number,
+            repo,
+        })
     }
 }
 
@@ -321,54 +328,18 @@ mod tests {
           }"#;
 
     #[test]
-    fn test_init() {
-        assert!(WebhookParser::init_from_str(WEBHOOK_DATA).is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_action() {
-        let parser = WebhookParser::init_from_str(WEBHOOK_DATA).unwrap();
-        assert_eq!(parser.action().await, "created".to_string());
-    }
-
-    #[tokio::test]
-    async fn test_comment_id() {
-        let parser = WebhookParser::init_from_str(WEBHOOK_DATA).unwrap();
-        assert_eq!(parser.comment_id().await, "4242424242".to_string());
-    }
-
-    #[tokio::test]
-    async fn test_extract_commands() {
-        let parser = WebhookParser::init_from_str(WEBHOOK_DATA).unwrap();
+    fn test_parse_webhook() {
+        let webhook = Webhook::parse_from_str(WEBHOOK_DATA).unwrap();
+        assert_eq!(webhook.action, "created".to_string());
+        assert_eq!(webhook.comment_id, "4242424242".to_string());
+        assert_eq!(webhook.author_association, "OWNER".to_string());
+        assert_eq!(webhook.issue_number, 3);
         assert_eq!(
-            parser.extract_commands().await,
-            vec![
-                "test_command".to_string(),
-                "test2".to_string(),
-                "command2".to_string(),
-                "3".to_string()
-            ]
-        );
-    }
-
-    #[tokio::test]
-    async fn test_author_association() {
-        let parser = WebhookParser::init_from_str(WEBHOOK_DATA).unwrap();
-        assert_eq!(parser.author_association().await, "OWNER".to_string());
-    }
-
-    #[tokio::test]
-    async fn test_issue_number() {
-        let parser = WebhookParser::init_from_str(WEBHOOK_DATA).unwrap();
-        assert_eq!(parser.issue_number().await.unwrap(), 3);
-    }
-
-    #[tokio::test]
-    async fn test_repository() {
-        let parser = WebhookParser::init_from_str(WEBHOOK_DATA).unwrap();
-        assert_eq!(
-            parser.repository().await.unwrap(),
-            ("namespace".to_string(), "reponame".to_string())
+            webhook.repo,
+            Repository {
+                owner: "namespace".to_string(),
+                name: "reponame".to_string()
+            }
         );
     }
 }

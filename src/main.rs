@@ -10,7 +10,7 @@ use std::{env, fs};
 use anyhow::{Context, Result};
 use args::{ReadCommandArgs, WriteArgs};
 
-use crate::{args::Subcommands, webhook::WebhookParser};
+use crate::{args::Subcommands, webhook::Webhook};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -55,22 +55,30 @@ async fn write(args: &WriteArgs, api_token: String) -> Result<()> {
 }
 
 async fn read(args: &ReadCommandArgs, api_token: String) -> Result<()> {
-    let parser = WebhookParser::init(&args.webhook)?;
-
-    let (owner, repo, issue_id, comment_id, commands) = read_command::parse_webhook(parser).await?;
+    let webhook = Webhook::parse(&args.webhook)?;
+    let commands = read_command::extract_commands(&webhook);
+    if commands.is_empty() {
+        println!("No commands found");
+        return Ok(());
+    }
 
     // get pull request and assosiated branch
-    let api = api::GitHubApi::init(&owner, &repo, api_token)?;
+    let api = api::GitHubApi::init(&webhook.repo.owner, &webhook.repo.name, api_token)?;
 
-    let pull_request = api.get_pull_request_by_id(issue_id).await?;
+    let pull_request = api.get_pull_request_by_id(webhook.issue_number).await?;
     let branch = pull_request.head.ref_field;
     println!("Found PR branch: {branch}");
 
-    let glapi = api::GitLabAPI::init(&args.job_token, &args.gl_instance, &owner, &repo);
+    let glapi = api::GitLabAPI::init(
+        &args.job_token,
+        &args.gl_instance,
+        &webhook.repo.owner,
+        &webhook.repo.name,
+    );
     for command in commands {
         println!("Triggering pipeline with command {}", command);
         let res = glapi
-            .trigger_pipeline_with_command(&branch, &command, &comment_id)
+            .trigger_pipeline_with_command(&branch, &command, &webhook.comment_id)
             .await?;
         println!("Pipeline response for command {}: \n{}", command, res);
     }

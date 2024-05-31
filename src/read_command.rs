@@ -1,42 +1,48 @@
-use std::process::exit;
+use crate::webhook::Webhook;
 
-use anyhow::{ensure, Result};
-
-use crate::webhook::WebhookParser;
-
-pub async fn parse_webhook(
-    parser: WebhookParser,
-) -> Result<(String, String, u64, String, Vec<String>)> {
+pub fn extract_commands(webhook: &Webhook) -> Vec<String> {
     // only continue if comment was not deleted
-    let action = parser.action().await;
-    if action.eq("deleted") {
+    if webhook.action.eq("deleted") {
         println!("Exiting: comment deleted");
-        exit(0);
-    }
-
-    // if comment has no command exit
-    let commands = parser.extract_commands().await;
-    if commands.is_empty() {
-        println!("Exiting: no command found");
-        exit(0);
-    } else {
-        println!("Found commands: {commands:?}");
+        return vec![];
     }
 
     // ensure author of command has sufficient rights
-    let rights = parser.author_association().await;
-    ensure!(
-        rights.eq("OWNER") || rights.eq("COLLABORATOR"),
-        "Exiting: Commenter does not have sufficient rights: {}",
-        rights
-    );
+    let rights = &webhook.author_association;
+    if !(rights.eq("OWNER") || rights.eq("COLLABORATOR")) {
+        println!("permission denied: {}", rights);
+        return vec![];
+    }
 
-    // get issue and repo properties
-    let issue_id = parser.issue_number().await?;
+    parse_commands(&webhook.comment)
+}
 
-    let comment_id = parser.comment_id().await;
+fn parse_commands(text: &str) -> Vec<String> {
+    text.lines()
+        .filter(|line| line.starts_with("@bot "))
+        .flat_map(|s| -> Vec<String> {
+            s.to_string()
+                .replace("@bot ", "")
+                .split(' ')
+                .map(|s| s.to_string())
+                .collect()
+        })
+        .collect()
+}
 
-    let (owner, repo) = parser.repository().await?;
-
-    Ok((owner, repo, issue_id, comment_id, commands))
+#[cfg(test)]
+mod tests {
+    use super::parse_commands;
+    #[test]
+    fn test_parse_commands() {
+        assert_eq!(
+            parse_commands("@bot test_command test2\r\n@bot command2 3\r\nthis is a reponame"),
+            vec![
+                "test_command".to_string(),
+                "test2".to_string(),
+                "command2".to_string(),
+                "3".to_string()
+            ]
+        );
+    }
 }
