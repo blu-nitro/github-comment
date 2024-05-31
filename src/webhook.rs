@@ -35,6 +35,10 @@ impl WebhookParser {
             .replace('"', "")
     }
 
+    pub async fn comment_id(&self) -> String {
+        self.json_object["comment"]["id"].to_string()
+    }
+
     pub async fn extract_commands(&self) -> Vec<String> {
         let text = self.comment().await;
         let commands: Vec<String> = text
@@ -154,7 +158,7 @@ mod tests {
               "url": "https://api.github.com/repos/namespace/reponame/issues/comments/1111111111",
               "html_url": "https://github.com/namespace/reponame/pull/3#issuecomment-1111111111",
               "issue_url": "https://api.github.com/repos/namespace/reponame/issues/3",
-              "id": 1111111111,
+              "id": 4242424242,
               "node_id": "node_id",
               "user": {
                 "login": "namespace",
@@ -325,6 +329,12 @@ mod tests {
     async fn test_action() {
         let parser = WebhookParser::init_from_str(WEBHOOK_DATA).unwrap();
         assert_eq!(parser.action().await, "created".to_string());
+    }
+
+    #[tokio::test]
+    async fn test_comment_id() {
+        let parser = WebhookParser::init_from_str(WEBHOOK_DATA).unwrap();
+        assert_eq!(parser.comment_id().await, "4242424242".to_string());
     }
 
     #[tokio::test]

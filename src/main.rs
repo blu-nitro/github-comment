@@ -57,7 +57,7 @@ async fn write(args: &WriteArgs, api_token: String) -> Result<()> {
 async fn read(args: &ReadCommandArgs, api_token: String) -> Result<()> {
     let parser = WebhookParser::init(&args.webhook)?;
 
-    let (owner, repo, issue_id, commands) = read_command::parse_webhook(parser).await?;
+    let (owner, repo, issue_id, comment_id, commands) = read_command::parse_webhook(parser).await?;
 
     // get pull request and assosiated branch
     let api = api::GitHubApi::init(&owner, &repo, api_token)?;
@@ -70,7 +70,7 @@ async fn read(args: &ReadCommandArgs, api_token: String) -> Result<()> {
     for command in commands {
         println!("Triggering pipeline with command {}", command);
         let res = glapi
-            .trigger_pipeline_with_command(&branch, &command)
+            .trigger_pipeline_with_command(&branch, &command, &comment_id)
             .await?;
         println!("Pipeline response for command {}: \n{}", command, res);
     }

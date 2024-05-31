@@ -4,7 +4,9 @@ use anyhow::{ensure, Result};
 
 use crate::webhook::WebhookParser;
 
-pub async fn parse_webhook(parser: WebhookParser) -> Result<(String, String, u64, Vec<String>)> {
+pub async fn parse_webhook(
+    parser: WebhookParser,
+) -> Result<(String, String, u64, String, Vec<String>)> {
     // only continue if comment was not deleted
     let action = parser.action().await;
     if action.eq("deleted") {
@@ -32,7 +34,9 @@ pub async fn parse_webhook(parser: WebhookParser) -> Result<(String, String, u64
     // get issue and repo properties
     let issue_id = parser.issue_number().await?;
 
+    let comment_id = parser.comment_id().await;
+
     let (owner, repo) = parser.repository().await?;
 
-    Ok((owner, repo, issue_id, commands))
+    Ok((owner, repo, issue_id, comment_id, commands))
 }

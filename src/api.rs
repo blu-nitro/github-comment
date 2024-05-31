@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::{Context as _, Result};
 use octocrab::{
     commits::PullRequestTarget,
@@ -132,18 +134,21 @@ impl GitLabAPI {
         }
     }
 
-    async fn trigger_pipeline_with_variable(
+    async fn trigger_pipeline_with_variables(
         &self,
         branch: &str,
-        variable: (&str, &str),
+        variables: HashMap<&str, &str>,
     ) -> Result<String> {
-        let form = [(format!("variables[{}]", variable.0), variable.1)];
-
         let client = reqwest::Client::new();
         let url = format!(
             "https://{}/api/v4/projects/{}%2F{}/trigger/pipeline?token={}&ref={}",
             self.instance, self.namespace, self.repo, self.token, branch
         );
+
+        let form: Vec<(String, String)> = variables
+            .iter()
+            .map(|(k, v)| (format!("variables[{k}]"), v.to_string()))
+            .collect();
         let res = client.post(url).form(&form).send().await?;
         res.text()
             .await
@@ -154,8 +159,13 @@ impl GitLabAPI {
         &self,
         branch: &str,
         command: &str,
+        comment_id: &str,
     ) -> Result<String> {
-        self.trigger_pipeline_with_variable(branch, ("COMMAND", command))
+        let mut variables = HashMap::new();
+        variables.insert("COMMAND", command);
+        variables.insert("COMMENT_ID", comment_id);
+
+        self.trigger_pipeline_with_variables(branch, variables)
             .await
     }
 }
