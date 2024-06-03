@@ -8,7 +8,7 @@ extern crate reqwest;
 use std::{env, fs};
 
 use anyhow::{Context, Result};
-use args::{ReadCommandArgs, WriteArgs};
+use args::{TriggerWebhookCommandsArgs, WriteCommentArgs};
 
 use crate::{args::Subcommands, webhook::Webhook};
 
@@ -18,13 +18,13 @@ async fn main() -> Result<()> {
     let api_token = env::var("GITHUB_COMMENT_TOKEN")
         .context("GITHUB_COMMENT_TOKEN environment variable must contain a GitHub API token")?;
     match args.command {
-        Subcommands::Write(args) => write(&args, api_token).await?,
-        Subcommands::ReadCommand(args) => read(&args, api_token).await?,
+        Subcommands::WriteComment(args) => write(&args, api_token).await?,
+        Subcommands::TriggerWebhookCommands(args) => read(&args, api_token).await?,
     }
     Ok(())
 }
 
-async fn write(args: &WriteArgs, api_token: String) -> Result<()> {
+async fn write(args: &WriteCommentArgs, api_token: String) -> Result<()> {
     let text = fs::read_to_string(&args.text).with_context(|| {
         format!(
             "failed to read comment text from file '{}'",
@@ -54,7 +54,7 @@ async fn write(args: &WriteArgs, api_token: String) -> Result<()> {
     Ok(())
 }
 
-async fn read(args: &ReadCommandArgs, api_token: String) -> Result<()> {
+async fn read(args: &TriggerWebhookCommandsArgs, api_token: String) -> Result<()> {
     let webhook = Webhook::parse(&args.webhook)?;
     let commands = read_command::extract_commands(&webhook);
     if commands.is_empty() {

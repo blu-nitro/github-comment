@@ -14,7 +14,7 @@ pub struct Args {
 }
 
 #[derive(Cargs)]
-pub struct WriteArgs {
+pub struct WriteCommentArgs {
     /// The owner of the repository to post the comment to.
     #[arg(long)]
     pub owner: String,
@@ -36,7 +36,7 @@ pub struct WriteArgs {
 }
 
 #[derive(Cargs)]
-pub struct ReadCommandArgs {
+pub struct TriggerWebhookCommandsArgs {
     /// A json file containing the webhook contents
     #[arg(long)]
     pub webhook: PathBuf,
@@ -60,10 +60,11 @@ pub enum Subcommands {
     ///
     /// The GITHUB_COMMENT_TOKEN environment variable must be set to a token with the write permission
     /// for issues or pull requests on the target repository.
-    Write(WriteArgs),
-    /// Reads commands from github issue_comment webhook and writes them to file
+    WriteComment(WriteCommentArgs),
+    /// Reads commands from github issue_comment webhook and triggers gitlab pipelines.
+    /// Command and comment_id are provided in the $COMMAND and $COMMENT_ID CI variables.
     ///
     /// The GITHUB_COMMENT_TOKEN environment variable must be set to a token with the read permission
     /// for issues or pull requests on the target repository.
-    ReadCommand(ReadCommandArgs),
+    TriggerWebhookCommands(TriggerWebhookCommandsArgs),
 }
