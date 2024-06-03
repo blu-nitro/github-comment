@@ -5,17 +5,15 @@ use octocrab::{
     Octocrab,
 };
 
-use crate::args::Args;
-
-pub fn init(args: &Args, api_token: String) -> Result<Api> {
+pub fn init(owner: String, repo: String, api_token: String) -> Result<Api> {
     let octocrab = Octocrab::builder()
         .personal_token(api_token)
         .build()
         .context("failed to create API client")?;
     Ok(Api {
         octocrab,
-        owner: args.owner.clone(),
-        repo: args.repo.clone(),
+        owner,
+        repo,
     })
 }
 

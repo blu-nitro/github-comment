@@ -5,9 +5,18 @@ use std::{env, fs};
 
 use anyhow::{Context as _, Result};
 
+use args::{Command, WriteCommentArgs};
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = args::parse();
+    match &args.command {
+        Command::WriteComment(args) => write_comment(&args),
+    }
+    .await
+}
+
+async fn write_comment(args: &WriteCommentArgs) -> Result<()> {
     let api_token = env::var("GITHUB_COMMENT_TOKEN")
         .context("GITHUB_COMMENT_TOKEN environment variable must contain a GitHub API token")?;
     let text = fs::read_to_string(&args.text).with_context(|| {
@@ -16,7 +25,7 @@ async fn main() -> Result<()> {
             args.text.display()
         )
     })?;
-    let api = api::init(&args, api_token)?;
+    let api = api::init(args.owner.clone(), args.repo.clone(), api_token)?;
     let pull_request = api.find_pull_request(&args.commit).await?;
     println!("Found pull request #{}", pull_request.number);
 
