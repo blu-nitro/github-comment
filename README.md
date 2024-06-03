@@ -1,7 +1,9 @@
-# github-comment
+# nitrokey-ci
+
+CI tooling for the Nitrokey repositories.
 
 ```
-$ github-comment --help
+$ nitrokey-ci --help
 Post or update a comment to a GitHub PR.
 
 This command tries to find a pull request that wants to merge the given commit.
@@ -12,7 +14,7 @@ created.
 The GITHUB_COMMENT_TOKEN environment variable must be set to a token with the
 write permission for issues or pull requests on the target repository.
 
-Usage: github-comment --owner <OWNER> --repo <REPO> --commit <COMMIT> --id <ID> <TEXT>
+Usage: nitrokey-ci --owner <OWNER> --repo <REPO> --commit <COMMIT> --id <ID> <TEXT>
 
 Arguments:
   <TEXT>

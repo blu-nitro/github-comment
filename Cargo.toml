@@ -1,10 +1,10 @@
 [package]
-name = "github-comment"
+name = "nitrokey-ci"
 version = "0.1.0"
 edition = "2021"
 
 authors = ["Nitrokey GmbH <info@nitrokey.com>"]
-description = "CLI tool for interacting with the GitHub API"
+description = "CI tooling for the Nitrokey repositories"
 license = "Apache-2.0 or MIT"
 repository = "https://github.com/Nitrokey/github-comment"
 
