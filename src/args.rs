@@ -41,6 +41,10 @@ pub struct TriggerWebhookCommandsArgs {
     #[arg(long)]
     pub webhook: PathBuf,
 
+    /// Acceptable bot, can be specified multiple times
+    #[arg(long = "bot")]
+    pub bots: Vec<String>,
+
     /// The GitLab instance the commands are to be executed on
     #[arg(long)]
     pub gl_instance: String,

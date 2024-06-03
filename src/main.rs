@@ -56,7 +56,7 @@ async fn write(args: &WriteCommentArgs, api_token: String) -> Result<()> {
 
 async fn read(args: &TriggerWebhookCommandsArgs, api_token: String) -> Result<()> {
     let webhook = Webhook::parse(&args.webhook)?;
-    let commands = read_command::extract_commands(&webhook);
+    let commands = read_command::extract_commands(&webhook, &args.bots);
     if commands.is_empty() {
         println!("No commands found");
         return Ok(());
@@ -76,11 +76,17 @@ async fn read(args: &TriggerWebhookCommandsArgs, api_token: String) -> Result<()
         &webhook.repo.name,
     );
     for command in commands {
-        println!("Triggering pipeline with command {}", command);
+        println!(
+            "Triggering pipeline for @{} with command {}",
+            command.bot, command.command
+        );
         let res = glapi
             .trigger_pipeline_with_command(&branch, &command, &webhook.comment_id)
             .await?;
-        println!("Pipeline response for command {}: \n{}", command, res);
+        println!(
+            "Pipeline response for @{} with command {}: \n{}",
+            command.bot, command.command, res
+        );
     }
 
     Ok(())

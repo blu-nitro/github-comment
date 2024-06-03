@@ -7,6 +7,8 @@ use octocrab::{
     Octocrab,
 };
 
+use crate::read_command::BotCommand;
+
 pub struct GitHubApi {
     octocrab: Octocrab,
     owner: String,
@@ -158,11 +160,12 @@ impl GitLabAPI {
     pub async fn trigger_pipeline_with_command(
         &self,
         branch: &str,
-        command: &str,
+        command: &BotCommand,
         comment_id: &str,
     ) -> Result<String> {
         let mut variables = HashMap::new();
-        variables.insert("COMMAND", command);
+        variables.insert("COMMAND_BOT", command.bot.as_str());
+        variables.insert("COMMAND", command.command.as_str());
         variables.insert("COMMENT_ID", comment_id);
 
         self.trigger_pipeline_with_variables(branch, variables)
