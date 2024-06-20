@@ -1,7 +1,7 @@
 mod api;
 mod args;
-mod read_command;
 mod webhook;
+mod webhook_command_utils;
 
 extern crate reqwest;
 
@@ -21,7 +21,7 @@ async fn main() -> Result<()> {
         .context("GITHUB_COMMENT_TOKEN environment variable must contain a GitHub API token")?;
     match &args.command {
         Command::WriteComment(args) => write_comment(args, api_token).await,
-        Command::TriggerWebhookCommands(args) => read(args, api_token).await,
+        Command::TriggerWebhookCommands(args) => trigger_webhook_commands(args, api_token).await,
     }
 }
 
@@ -55,9 +55,12 @@ async fn write_comment(args: &WriteCommentArgs, api_token: String) -> Result<()>
     Ok(())
 }
 
-async fn read(args: &TriggerWebhookCommandsArgs, api_token: String) -> Result<()> {
+async fn trigger_webhook_commands(
+    args: &TriggerWebhookCommandsArgs,
+    api_token: String,
+) -> Result<()> {
     let webhook = Webhook::parse(&args.webhook)?;
-    let commands = read_command::extract_commands(&webhook, &args.bots);
+    let commands = webhook_command_utils::extract_commands(&webhook, &args.bots);
     if commands.is_empty() {
         println!("No commands found");
         return Ok(());

@@ -7,7 +7,7 @@ use octocrab::{
     Octocrab,
 };
 
-use crate::read_command::BotCommand;
+use crate::webhook_command_utils::BotCommand;
 
 pub struct GitHubApi {
     octocrab: Octocrab,
