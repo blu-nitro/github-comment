@@ -36,7 +36,7 @@ fn parse_commands(text: &str, bots: &Vec<String>) -> Vec<BotCommand> {
         let atbot = &format!("@{bot} ");
         text.lines()
             .flat_map(|line| line.strip_prefix(atbot))
-            .flat_map(|line| line.split_once(' '))
+            .map(|line| line.split_once(' ').unwrap_or((line, "")))
             .map(|com| BotCommand {
                 command: com.0.to_owned(),
                 args: com.1.to_owned(),
