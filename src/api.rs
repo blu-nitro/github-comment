@@ -166,6 +166,7 @@ impl GitLabAPI {
         let mut variables = HashMap::new();
         variables.insert("COMMAND_BOT", command.bot.as_str());
         variables.insert("COMMAND", command.command.as_str());
+        variables.insert("COMMAND_ARGS", command.args.as_str());
         variables.insert("COMMENT_ID", comment_id);
 
         self.trigger_pipeline_with_variables(branch, variables)

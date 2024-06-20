@@ -3,6 +3,7 @@ use crate::webhook::Webhook;
 #[derive(PartialEq, Debug)]
 pub struct BotCommand {
     pub command: String,
+    pub args: String,
     pub bot: String,
 }
 
@@ -34,20 +35,14 @@ fn parse_commands(text: &str, bots: &Vec<String>) -> Vec<BotCommand> {
     for bot in bots {
         let atbot = &format!("@{bot} ");
         text.lines()
-            .filter(|line| line.starts_with(atbot))
-            .flat_map(|s| -> Vec<String> {
-                s.to_string()
-                    .replace(atbot, "")
-                    .split(' ')
-                    .map(|s| s.to_string())
-                    .collect()
+            .flat_map(|line| line.strip_prefix(atbot))
+            .flat_map(|line| line.split_once(' '))
+            .map(|com| BotCommand {
+                command: com.0.to_owned(),
+                args: com.1.to_owned(),
+                bot: bot.to_owned(),
             })
-            .for_each(|s| {
-                bot_commands.push(BotCommand {
-                    command: s,
-                    bot: bot.to_owned(),
-                })
-            });
+            .for_each(|command| bot_commands.push(command));
     }
 
     bot_commands
@@ -62,24 +57,18 @@ mod tests {
     fn test_parse_commands() {
         assert_eq!(
             parse_commands(
-                "@bot test_command test2\r\n@bot2 command2 3\r\nthis is a reponame",
+                "@bot test_command test2\r\n@bot2 command2 3\r\nthis is a comment",
                 &vec!["bot".to_string(), "bot2".to_string()]
             ),
             vec![
                 BotCommand {
                     command: "test_command".to_string(),
-                    bot: "bot".to_string()
-                },
-                BotCommand {
-                    command: "test2".to_string(),
-                    bot: "bot".to_string()
+                    args: "test2".to_string(),
+                    bot: "bot".to_string(),
                 },
                 BotCommand {
                     command: "command2".to_string(),
-                    bot: "bot2".to_string()
-                },
-                BotCommand {
-                    command: "3".to_string(),
+                    args: "3".to_string(),
                     bot: "bot2".to_string()
                 },
             ]
