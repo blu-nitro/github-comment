@@ -99,7 +99,7 @@ impl Webhook {
 mod tests {
     use super::*;
 
-    const WEBHOOK_DATA: &str = include_str!("webhook_test_data.json");
+    const WEBHOOK_DATA: &str = include_str!("../test/webhook_test_data.json");
 
     #[test]
     fn test_parse_webhook() {
