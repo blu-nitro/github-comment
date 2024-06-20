@@ -57,7 +57,7 @@ mod tests {
     fn test_parse_commands() {
         assert_eq!(
             parse_commands(
-                "@bot test_command test2\r\n@bot2 command2 3\r\nthis is a comment",
+                "@bot test_command test2\r\n@bot2 command2 3 4\r\n@bot2 command\r\nthis is a comment",
                 &vec!["bot".to_string(), "bot2".to_string()]
             ),
             vec![
@@ -68,7 +68,12 @@ mod tests {
                 },
                 BotCommand {
                     command: "command2".to_string(),
-                    args: "3".to_string(),
+                    args: "3 4".to_string(),
+                    bot: "bot2".to_string()
+                },
+                BotCommand {
+                    command: "command".to_string(),
+                    args: "".to_string(),
                     bot: "bot2".to_string()
                 },
             ]
